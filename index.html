@@ -3,362 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>o2 Call • تماس تصویری امن</title>
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>o2 Call | تماس امن</title>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #0f172a; --surface: #1e293b; --primary: #3b82f6; --accent: #10b981;
-            --text: #f1f5f9; --border: #334155; --radius: 16px;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; outline: none; }
-        body {
-            font-family: 'Vazirmatn', sans-serif; background: var(--bg); color: var(--text);
-            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-        }
+        :root { --bg: #0f172a; --panel: #1e293b; --primary: #3b82f6; --success: #10b981; --err: #ef4444; }
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; font-family: 'Vazirmatn', sans-serif; background: var(--bg); color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* Layout */
-        .app-shell { display: grid; grid-template-columns: 1fr 380px; height: 100%; }
-        
-        /* Video Stage */
-        .stage {
-            position: relative; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden;
-        }
-        .video-wrapper {
-            width: 100%; height: 100%; position: relative;
-        }
-        video {
-            width: 100%; height: 100%; object-fit: cover; background: #000;
-        }
+        /* --- VIDEO STAGE --- */
+        .stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #000; }
+        video { width: 100%; height: 100%; object-fit: cover; }
         #localVideo {
-            position: absolute; bottom: 20px; right: 20px; width: 120px; height: 160px;
-            background: #222; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2);
-            z-index: 10; object-fit: cover; transform: scaleX(-1);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5); transition: 0.3s;
+            position: absolute; bottom: 20px; right: 20px; width: 100px; height: 140px;
+            background: #333; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);
+            object-fit: cover; transform: scaleX(-1); z-index: 10;
         }
-        #remoteVideo { position: absolute; top:0; left:0; width:100%; height:100%; }
+        #remoteVideo { position: absolute; inset: 0; }
+        .status {
+            position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 5px 12px;
+            border-radius: 20px; font-size: 12px; backdrop-filter: blur(5px); display: flex; align-items: center; gap: 6px; z-index: 5;
+        }
+        .dot { width: 8px; height: 8px; background: var(--err); border-radius: 50%; }
+        .dot.connected { background: var(--success); box-shadow: 0 0 10px var(--success); }
 
-        .status-badge {
-            position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px); padding: 6px 12px; border-radius: 20px;
-            font-size: 12px; display: flex; align-items: center; gap: 6px; z-index: 5;
+        /* --- CONTROLS --- */
+        .controls-bar {
+            position: absolute; bottom: 30px; display: flex; gap: 15px; z-index: 20;
         }
-        .dot { width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: pulse 2s infinite; }
-        .dot.green { background: #10b981; animation: none; }
+        .btn-circle {
+            width: 50px; height: 50px; border-radius: 50%; border: none; background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px); color: white; font-size: 20px; cursor: pointer;
+        }
+        .btn-circle.red { background: var(--err); }
 
-        /* Sidebar */
-        .sidebar {
-            background: var(--surface); border-right: 1px solid var(--border);
-            padding: 24px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; z-index: 20;
+        /* --- SIDEBAR PANEL --- */
+        .panel {
+            background: var(--panel); padding: 20px; display: flex; flex-direction: column; gap: 15px;
+            border-top: 1px solid #334155; max-height: 50vh; overflow-y: auto; z-index: 30;
         }
-        .header h1 { font-size: 22px; font-weight: 800; letter-spacing: -1px; }
-        .header span { color: var(--primary); }
-
-        .card {
-            background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 16px; position: relative;
-        }
-        .card-title { font-size: 14px; color: #94a3b8; margin-bottom: 12px; font-weight: 600; }
         
-        .btn {
-            width: 100%; padding: 14px; border-radius: 12px; border: none; cursor: pointer;
-            font-family: inherit; font-weight: 600; font-size: 14px; color: white;
-            background: var(--primary); transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        .box {
+            background: rgba(0,0,0,0.2); border: 1px solid #334155; padding: 15px; border-radius: 12px;
+            display: none; /* Hidden by default */
         }
-        .btn:active { transform: scale(0.98); }
-        .btn.secondary { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--border); }
-        .btn:disabled { opacity: 0.5; cursor: wait; }
+        .box.active { display: block; animation: fadeIn 0.3s; }
+
+        h2 { margin: 0 0 10px 0; font-size: 14px; color: #94a3b8; }
+        p { font-size: 12px; color: #cbd5e1; margin-bottom: 12px; line-height: 1.6; }
+
+        .btn {
+            width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--primary);
+            color: white; font-family: inherit; font-weight: bold; cursor: pointer; font-size: 13px;
+        }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn.sec { background: transparent; border: 1px solid #475569; }
 
         textarea {
-            width: 100%; background: #0f172a; border: 1px solid var(--border); color: #cbd5e1;
-            padding: 12px; border-radius: 12px; font-family: monospace; font-size: 11px;
-            resize: none; height: 80px; margin-bottom: 10px; transition: 0.3s;
+            width: 100%; height: 70px; background: #0f172a; border: 1px solid #334155; color: #fff;
+            border-radius: 8px; padding: 10px; font-size: 11px; font-family: monospace; resize: none;
         }
-        textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-
-        /* Controls */
-        .controls {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 15px; z-index: 20;
-        }
-        .control-btn {
-            width: 56px; height: 56px; border-radius: 50%; border: none;
-            background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(10px);
-            color: white; font-size: 22px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            display: flex; align-items: center; justify-content: center; transition: 0.2s;
-        }
-        .control-btn.hangup { background: #ef4444; }
-        .control-btn:active { transform: scale(0.9); }
         
-        .hidden { display: none !important; }
+        /* Loading Overlay */
+        .loader {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
+            display: none; align-items: center; justify-content: center; flex-direction: column; gap: 15px;
+        }
+        .spinner { width: 30px; height: 30px; border: 3px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-
-        /* Mobile */
-        @media (max-width: 900px) {
-            .app-shell { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-            .sidebar { border-right: none; border-top: 1px solid var(--border); max-height: 45vh; padding: 15px; }
-            #localVideo { width: 90px; height: 120px; bottom: 100px; right: 15px; }
-            .controls { bottom: 110px; }
+        /* Desktop Mode */
+        @media(min-width: 768px) {
+            body { flex-direction: row; }
+            .panel { width: 350px; height: 100vh; border-top: none; border-right: 1px solid #334155; max-height: none; }
+            #localVideo { width: 120px; height: 160px; }
         }
     </style>
 </head>
 <body>
 
-<div class="app-shell">
-    <!-- VIDEO STAGE -->
-    <div class="stage">
-        <div class="video-wrapper">
-            <video id="remoteVideo" autoplay playsinline></video>
-            <video id="localVideo" autoplay playsinline muted></video>
-            <div class="status-badge"><div class="dot" id="statusDot"></div><span id="statusText">آفلاین</span></div>
-        </div>
-        
-        <div class="controls">
-            <button class="control-btn" onclick="toggleMute(this)">🎤</button>
-            <button class="control-btn hangup" onclick="location.href=location.pathname">✖</button>
-            <button class="control-btn" onclick="toggleCam(this)">📷</button>
-        </div>
+<!-- LOADER -->
+<div class="loader" id="loader">
+    <div class="spinner"></div>
+    <div id="loaderText" style="font-size:14px">در حال پردازش...</div>
+</div>
+
+<!-- MAIN APP -->
+<div class="stage">
+    <video id="remoteVideo" autoplay playsinline></video>
+    <video id="localVideo" autoplay playsinline muted></video>
+    
+    <div class="status"><div class="dot" id="statusDot"></div><span id="statusTxt">آفلاین</span></div>
+    
+    <div class="controls-bar">
+        <button class="btn-circle" onclick="toggleMute(this)">🎤</button>
+        <button class="btn-circle red" onclick="location.href=location.pathname">✖</button>
+        <button class="btn-circle" onclick="toggleCam(this)">📷</button>
+    </div>
+</div>
+
+<div class="panel">
+    <div style="font-size:18px; font-weight:800; margin-bottom:5px;">o2 <span style="color:var(--primary)">Call</span></div>
+
+    <!-- BOX 1: HOST START -->
+    <div class="box active" id="hostBox1">
+        <h2>شروع تماس</h2>
+        <p>اگر شما شروع‌کننده هستید، روی دکمه زیر بزنید.</p>
+        <button class="btn" onclick="startHost()">🔗 ساخت لینک دعوت</button>
+        <div style="text-align:center; margin-top:10px; font-size:11px; opacity:0.5">یا اگر لینکی دریافت کردید، صبر کنید...</div>
     </div>
 
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-        <div class="header"><h1>o2 <span>Call</span></h1></div>
-
-        <!-- SECTION 1: HOST -->
-        <div id="hostSection">
-            <div class="card" id="step1">
-                <div class="card-title">۱. شروع به عنوان میزبان</div>
-                <p style="font-size:12px; color:#64748b; margin-bottom:10px">اگر شما تماس را شروع می‌کنید، روی دکمه زیر بزنید.</p>
-                <button class="btn" id="createBtn" onclick="createOffer()">🚀 ساخت لینک دعوت</button>
-            </div>
-
-            <div class="card hidden" id="step2">
-                <div class="card-title">۲. ارسال لینک</div>
-                <button class="btn secondary" id="copyBtn" onclick="copyLink()">📋 کپی لینک</button>
-                <div style="margin: 15px 0; border-top: 1px dashed var(--border)"></div>
-                <div class="card-title">۳. وارد کردن کد تایید</div>
-                <textarea id="remoteAnswer" placeholder="کد تاییدی که دوستتان فرستاد را اینجا پیست کنید..."></textarea>
-                <button class="btn" onclick="verifyAnswer()" style="background:var(--accent)">اتصال نهایی ⚡</button>
-            </div>
-        </div>
-
-        <!-- SECTION 2: GUEST -->
-        <div id="guestSection" class="hidden">
-            <div class="card">
-                <div class="card-title" style="color:var(--accent)">در حال دریافت تماس...</div>
-                <p style="font-size:12px; margin-bottom:10px">سیستم در حال پردازش لینک است. لطفا کد زیر را کپی کرده و برای فرستنده ارسال کنید.</p>
-                <textarea id="guestOutput" readonly onclick="this.select()"></textarea>
-                <button class="btn" onclick="copyGuestCode()">📋 کپی کد تایید</button>
-            </div>
-        </div>
+    <!-- BOX 2: HOST SHARE -->
+    <div class="box" id="hostBox2">
+        <h2>ارسال لینک</h2>
+        <p>لینک ساخته شد! آن را برای دوستتان بفرستید.</p>
+        <button class="btn sec" id="copyLinkBtn" onclick="copyLink()">📋 کپی لینک</button>
         
-        <div id="logArea" style="font-size:11px; color:#ef4444; text-align:center; min-height:20px;"></div>
+        <div style="margin:15px 0; border-top:1px dashed #334155"></div>
+        
+        <h2>تایید نهایی</h2>
+        <p>کدی که دوستتان بعد از باز کردن لینک می‌دهد را اینجا وارد کنید:</p>
+        <textarea id="hostInput" placeholder="کد تایید دوستتان را اینجا Paste کنید..."></textarea>
+        <div style="height:10px"></div>
+        <button class="btn" style="background:var(--success)" onclick="connectHost()">اتصال ⚡</button>
+    </div>
+
+    <!-- BOX 3: GUEST -->
+    <div class="box" id="guestBox">
+        <h2 style="color:var(--success)">پاسخ به تماس</h2>
+        <p>اطلاعات تماس دریافت شد. لطفا صبر کنید...</p>
+        <textarea id="guestOutput" readonly onclick="this.select()"></textarea>
+        <div style="height:10px"></div>
+        <button class="btn" onclick="copyAnswer()">📋 کپی کد تایید (ارسال برای میزبان)</button>
+    </div>
+
+    <!-- MANUAL MODE (FALLBACK) -->
+    <div class="box" id="manualBox">
+        <h2 style="color:var(--err)">خطا در دریافت لینک</h2>
+        <p>لینک خودکار کار نکرد. لطفا از دوستتان بخواهید «کد دعوت» را جداگانه بفرستد و اینجا وارد کنید:</p>
+        <textarea id="manualInput" placeholder="کد دعوت طولانی را اینجا Paste کنید..."></textarea>
+        <button class="btn" onclick="manualGuestStart()">بررسی کد دستی</button>
     </div>
 </div>
 
 <script>
-    // --- CONFIGURATION ---
-    const config = {
-        iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" }
-        ]
-    };
+    const CONFIG = { iceServers: [{ urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }] };
+    let pc, localStream;
+    
+    // Elements
+    const el = (id) => document.getElementById(id);
+    const showLoader = (txt) => { el('loader').style.display = 'flex'; el('loaderText').textContent = txt; };
+    const hideLoader = () => el('loader').style.display = 'none';
+    const showBox = (id) => { document.querySelectorAll('.box').forEach(b=>b.classList.remove('active')); el(id).classList.add('active'); };
 
-    // --- VARIABLES ---
-    let pc;
-    let localStream;
-    const log = (msg) => document.getElementById('logArea').textContent = msg;
-
-    // --- UTILS (ENHANCED ENCODING) ---
-    // Safe Encode: Object -> JSON -> Base64 -> URL Encoded
-    const encodeData = (data) => {
-        try {
-            return encodeURIComponent(btoa(JSON.stringify(data)));
-        } catch(e) { console.error(e); return ""; }
-    };
-
-    // Safe Decode: URL Decoded -> Base64 -> JSON -> Object
-    const decodeData = (str) => {
-        try {
-            // Fix: Replace standard spaces with +, though decodeURIComponent handles %20
-            const cleanStr = decodeURIComponent(str); 
-            return JSON.parse(atob(cleanStr));
-        } catch (e) {
-            console.error("Decode Error:", e);
-            throw new Error("فرمت کد اشتباه است.");
+    // --- UTILS ---
+    const compress = (json) => encodeURIComponent(btoa(JSON.stringify(json)));
+    const decompress = (str) => {
+        try { return JSON.parse(atob(decodeURIComponent(str))); }
+        catch(e) { 
+            try { return JSON.parse(atob(str)); } // Retry without decodeURI
+            catch(err) { return null; }
         }
     };
 
-    // --- CORE MEDIA ---
-    async function startMedia() {
+    // --- 1. MEDIA SETUP ---
+    async function initMedia() {
         try {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            document.getElementById('localVideo').srcObject = localStream;
+            localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+            el('localVideo').srcObject = localStream;
             return true;
-        } catch (err) {
-            alert("دسترسی به دوربین داده نشد! لطفا چک کنید سایت HTTPS باشد یا دسترسی را باز کنید.");
+        } catch (e) {
+            alert("دسترسی دوربین/میکروفون داده نشد. لطفا چک کنید سایت HTTPS باشد.");
             return false;
         }
     }
 
-    // --- WEBRTC SETUP ---
-    function setupPC() {
-        pc = new RTCPeerConnection(config);
+    // --- 2. WEBRTC CORE ---
+    function createPeer() {
+        const p = new RTCPeerConnection(CONFIG);
+        if(localStream) localStream.getTracks().forEach(t => p.addTrack(t, localStream));
         
-        // Add Tracks
-        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-        
-        // Remote Stream Handler
-        pc.ontrack = (event) => {
-            document.getElementById('remoteVideo').srcObject = event.streams[0];
-            document.getElementById('statusDot').classList.add('green');
-            document.getElementById('statusText').textContent = "متصل شد";
+        p.ontrack = e => {
+            el('remoteVideo').srcObject = e.streams[0];
+            el('statusDot').classList.add('connected');
+            el('statusTxt').textContent = "متصل شد";
+            document.querySelector('.panel').style.display = 'none'; // Hide panel on connect (mobile friendly)
         };
-
-        // Connection State
-        pc.onconnectionstatechange = () => {
-            if(pc.connectionState === 'connected') {
-                log("");
-                document.querySelector('.sidebar').style.opacity = '0.5'; // Focus on video
-            }
-        };
-
-        return pc;
+        return p;
     }
 
-    async function gatherCandidates(pc) {
+    // Wait for ALL ICE candidates (The secret to serverless working)
+    async function waitForICE(p) {
         return new Promise(resolve => {
-            if (pc.iceGatheringState === 'complete') {
-                resolve();
-            } else {
-                let checkTimer;
-                const checkDone = () => {
-                    if (pc.iceGatheringState === 'complete') {
-                        clearTimeout(checkTimer);
-                        resolve();
-                    }
-                };
-                pc.onicecandidate = (e) => { if (!e.candidate) checkDone(); };
-                // Timeout safety (2.5s)
-                checkTimer = setTimeout(resolve, 2500); 
+            if (p.iceGatheringState === 'complete') resolve();
+            else {
+                // Double check mechanism
+                const check = () => { if (p.iceGatheringState === 'complete') { p.removeEventListener('icegatheringstatechange', check); resolve(); } };
+                p.addEventListener('icegatheringstatechange', check);
+                // Force resolve after 3s (Safety)
+                setTimeout(resolve, 3000); 
             }
         });
     }
 
-    // --- HOST FUNCTIONS ---
-    async function createOffer() {
-        const btn = document.getElementById('createBtn');
-        btn.disabled = true;
-        btn.innerHTML = "⏳ در حال ساخت...";
+    // --- 3. HOST LOGIC ---
+    async function startHost() {
+        if(!await initMedia()) return;
+        showLoader("در حال ساخت کد...");
 
-        if (!await startMedia()) { btn.disabled = false; return; }
-
-        pc = setupPC();
-        pc.createDataChannel("chat"); // Trigger ICE generation
+        pc = createPeer();
+        pc.createDataChannel("o2"); // Required to initiate ICE
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         
-        await gatherCandidates(pc);
+        await waitForICE(pc); // Wait for IP gathering
 
-        // Generate Link
-        const payload = pc.localDescription;
-        const encoded = encodeData(payload);
-        const link = window.location.origin + window.location.pathname + '?d=' + encoded;
-        
+        const code = compress(pc.localDescription);
+        const link = location.origin + location.pathname + '?d=' + code;
+
         window.generatedLink = link;
-
-        // UI Switch
-        document.getElementById('step1').classList.add('hidden');
-        document.getElementById('step2').classList.remove('hidden');
+        hideLoader();
+        showBox('hostBox2');
     }
 
     function copyLink() {
         if(!window.generatedLink) return;
-        navigator.clipboard.writeText(window.generatedLink).then(() => {
-            document.getElementById('copyBtn').innerHTML = "کپی شد ✅";
-            setTimeout(() => document.getElementById('copyBtn').innerHTML = "📋 کپی لینک", 2000);
-        });
+        navigator.clipboard.writeText(window.generatedLink);
+        el('copyLinkBtn').textContent = "کپی شد ✅";
     }
 
-    async function verifyAnswer() {
-        const raw = document.getElementById('remoteAnswer').value;
-        // Fix: Remove ALL whitespace (spaces, tabs, newlines) to prevent copy-paste errors
-        const clean = raw.replace(/\s+/g, '');
+    async function connectHost() {
+        const txt = el('hostInput').value.trim();
+        if(!txt) return alert("کد خالی است");
         
-        if (!clean) { log("کد وارد نشده است!"); return; }
-
         try {
-            const answerDesc = decodeData(clean); // Uses our improved decoder
-            await pc.setRemoteDescription(answerDesc);
-            log("");
-        } catch (e) {
-            log("❌ خطا: کد اشتباه است. لطفا دوباره کپی کنید.");
-            console.error(e);
-        }
+            const answer = decompress(txt) || JSON.parse(atob(txt)); // Handle both formats
+            await pc.setRemoteDescription(answer);
+            el('hostInput').value = ""; // Clear for security
+        } catch(e) { alert("کد اشتباه است"); console.error(e); }
     }
 
-    // --- GUEST FUNCTIONS ---
-    async function handleGuest(encodedOffer) {
-        document.getElementById('hostSection').classList.add('hidden');
-        document.getElementById('guestSection').classList.remove('hidden');
+    // --- 4. GUEST LOGIC ---
+    async function initGuest(offerCode) {
+        // Important: User interaction required before playing audio
+        showLoader("در حال راه‌اندازی دوربین...");
+        if(!await initMedia()) { hideLoader(); return; }
 
-        if (!await startMedia()) return;
-
+        showLoader("در حال پردازش کد...");
         try {
-            pc = setupPC();
-            
-            const offerDesc = decodeData(encodedOffer);
-            await pc.setRemoteDescription(offerDesc);
+            const offerDesc = decompress(offerCode);
+            if(!offerDesc) throw new Error("Invalid Code");
 
+            pc = createPeer();
+            await pc.setRemoteDescription(offerDesc);
+            
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
+            
+            await waitForICE(pc); // Wait for Guest IP
 
-            await gatherCandidates(pc);
+            // Prepare Answer Code
+            const answerCode = btoa(JSON.stringify(pc.localDescription)); // Simple b64 for text box
+            el('guestOutput').value = answerCode;
+            
+            hideLoader();
+            showBox('guestBox');
 
-            // Output Answer Code
-            // We use simple base64 for the text output, URL encoding not needed for manual copy
-            const answerPayload = btoa(JSON.stringify(pc.localDescription));
-            document.getElementById('guestOutput').value = answerPayload;
-
-        } catch (e) {
-            log("لینک خراب یا منقضی است.");
+        } catch(e) {
+            hideLoader();
+            alert("لینک ناقص است یا کپی نشده. لطفا کد دستی را امتحان کنید.");
+            showBox('manualBox');
         }
     }
 
-    function copyGuestCode() {
-        const txt = document.getElementById('guestOutput');
-        txt.select();
-        txt.setSelectionRange(0, 99999); // Mobile fix
-        navigator.clipboard.writeText(txt.value).then(() => {
-            log("کپی شد! برای میزبان بفرستید ✅");
-        });
+    function copyAnswer() {
+        const t = el('guestOutput');
+        t.select();
+        t.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(t.value);
+        alert("کپی شد! این کد را برای فرستنده بفرستید.");
+    }
+
+    // Manual Fallback
+    function manualGuestStart() {
+        const code = el('manualInput').value.trim();
+        if(code) initGuest(code); // Treat manual code same as URL code
     }
 
     // --- INIT ---
-    // Check if we are guest
-    const urlParams = new URLSearchParams(window.location.search);
-    const incomingData = urlParams.get('d');
+    // Check URL for incoming call
+    window.onload = () => {
+        const params = new URLSearchParams(location.search);
+        const data = params.get('d');
+        if (data) {
+            // We found a call link!
+            el('hostBox1').style.display = 'none'; // Hide host start
+            // Show a "Join" button to trigger permission prompt properly
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.style.marginTop = '20px';
+            btn.innerHTML = "📞 دریافت تماس (کلیک کنید)";
+            btn.onclick = () => { btn.remove(); initGuest(data); };
+            
+            document.querySelector('.panel').innerHTML = ""; // Clear panel
+            document.querySelector('.panel').appendChild(btn);
+            
+            // Auto hide loader just in case
+            hideLoader();
+        }
+    };
 
-    if (incomingData) {
-        handleGuest(incomingData);
-    }
-
-    // --- MEDIA CONTROLS ---
+    // --- CONTROLS ---
     function toggleMute(btn) {
         if(localStream) {
-            const audioTrack = localStream.getAudioTracks()[0];
-            audioTrack.enabled = !audioTrack.enabled;
-            btn.style.opacity = audioTrack.enabled ? 1 : 0.5;
-            btn.innerHTML = audioTrack.enabled ? "🎤" : "🔇";
+            const t = localStream.getAudioTracks()[0]; t.enabled = !t.enabled;
+            btn.style.opacity = t.enabled ? 1 : 0.5;
         }
     }
     function toggleCam(btn) {
         if(localStream) {
-            const videoTrack = localStream.getVideoTracks()[0];
-            videoTrack.enabled = !videoTrack.enabled;
-            btn.style.opacity = videoTrack.enabled ? 1 : 0.5;
+            const t = localStream.getVideoTracks()[0]; t.enabled = !t.enabled;
+            btn.style.opacity = t.enabled ? 1 : 0.5;
         }
     }
 </script>
