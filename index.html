@@ -3,253 +3,363 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>o2 Connect • تماس امن</title>
+    <title>o2 Call • تماس فوری</title>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0f172a; --panel: #1e293b; --primary: #3b82f6; --accent: #8b5cf6;
-            --text: #f1f5f9; --muted: #94a3b8; --border: #334155; --radius: 20px;
+            --bg: #0b1121; --surface: #151e32; --primary: #3b82f6; --accent: #ec4899;
+            --text: #f8fafc; --border: #334155; --radius: 18px;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: 'Vazirmatn', sans-serif; background: var(--bg); color: var(--text);
             height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* هشدار امنیتی */
-        #securityAlert {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.95); z-index: 9999;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            padding: 30px; text-align: center;
+        /* Layout */
+        .app-shell { display: grid; grid-template-columns: 1fr 380px; height: 100%; }
+        
+        /* Video Area */
+        .stage {
+            position: relative; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; background: #000; padding: 10px;
         }
-        .alert-box {
-            background: #ef4444; color: white; padding: 20px; border-radius: 20px;
-            max-width: 500px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        .video-container {
+            position: relative; width: 100%; height: 100%; max-width: 1200px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center;
         }
-
-        .main-layout { display: grid; grid-template-columns: 1fr 400px; height: 100%; }
-        .video-stage { position: relative; padding: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #020617; }
-        .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1200px; height: 70%; }
-        .video-card { background: #000; border-radius: var(--radius); overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid var(--border); }
-        video { width: 100%; height: 100%; object-fit: cover; }
+        .vid-card {
+            background: #111; border-radius: var(--radius); overflow: hidden; position: relative;
+            height: 100%; border: 1px solid #333;
+        }
+        video { width: 100%; height: 100%; object-fit: cover; display: block; }
         #localVideo { transform: scaleX(-1); }
-        .label { position: absolute; bottom: 15px; left: 15px; background: rgba(0,0,0,0.6); padding: 5px 12px; border-radius: 10px; font-size: 12px; backdrop-filter: blur(4px); }
+        .badge {
+            position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.6);
+            padding: 4px 10px; border-radius: 8px; font-size: 12px; backdrop-filter: blur(4px);
+        }
 
-        .controls-bar { margin-top: 20px; display: flex; gap: 15px; }
-        .btn-circle { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; background: var(--panel); color: white; font-size: 24px; display: flex; align-items: center; justify-content: center; transition: 0.2s; border: 1px solid var(--border); }
-        .btn-circle:hover { transform: scale(1.1); background: var(--primary); }
-        .btn-circle.danger { background: #ef4444; border-color: #ef4444; }
+        /* Sidebar Controls */
+        .sidebar {
+            background: var(--surface); border-right: 1px solid var(--border); padding: 20px;
+            display: flex; flex-direction: column; gap: 15px; overflow-y: auto; z-index: 10;
+        }
+        .logo { font-size: 24px; font-weight: 900; color: white; margin-bottom: 10px; }
+        .highlight { color: var(--primary); }
 
-        .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; box-shadow: -5px 0 20px rgba(0,0,0,0.3); }
-        .header h1 { font-size: 24px; font-weight: 800; background: linear-gradient(to right, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .step-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 16px; padding: 20px; opacity: 0.5; pointer-events: none; filter: grayscale(0.5); transition: 0.3s; }
-        .step-card.active { opacity: 1; pointer-events: all; filter: grayscale(0); border-color: var(--primary); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
-        .step-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--primary); }
+        .card {
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border); 
+            border-radius: 16px; padding: 16px; transition: 0.3s;
+        }
+        .card.active { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
         
-        .btn-block { width: 100%; padding: 14px; border-radius: 12px; border: none; cursor: pointer; background: var(--primary); color: white; font-family: inherit; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; margin-bottom: 10px; }
-        .btn-block:hover { background: #2563eb; }
-        .input-box { width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 12px; min-height: 80px; resize: none; margin-bottom: 10px; }
+        h3 { font-size: 15px; margin-bottom: 8px; color: #e2e8f0; }
+        p { font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 12px; }
+
+        .btn {
+            width: 100%; padding: 14px; border-radius: 12px; border: none; cursor: pointer;
+            font-family: inherit; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: var(--primary); color: white; transition: 0.2s;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
         
+        textarea {
+            width: 100%; background: #0b1121; border: 1px solid var(--border); color: #cbd5e1;
+            padding: 10px; border-radius: 10px; font-family: monospace; font-size: 11px; resize: none; height: 70px; outline: none;
+        }
+        textarea:focus { border-color: var(--primary); }
+
+        /* Loading Animation */
+        .progress-bar {
+            height: 4px; width: 100%; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 10px; display: none;
+        }
+        .progress-fill {
+            height: 100%; background: var(--primary); width: 0%; transition: width 0.3s;
+        }
+
+        /* Controls */
+        .controls {
+            position: absolute; bottom: 20px; display: flex; gap: 12px;
+        }
+        .icon-btn {
+            width: 50px; height: 50px; border-radius: 50%; background: rgba(30, 41, 59, 0.8); 
+            color: white; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; font-size: 20px;
+            display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);
+        }
+        .icon-btn.red { background: #ef4444; border-color: #ef4444; }
+        .icon-btn:active { transform: scale(0.95); }
+
+        /* Responsive */
         @media (max-width: 900px) {
-            .main-layout { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-            .sidebar { order: 2; height: auto; border-right: none; border-top: 1px solid var(--border); padding: 20px; }
-            .video-stage { order: 1; height: 55vh; padding: 10px; }
-            .video-grid { height: 100%; grid-template-columns: 1fr; }
-            .video-card.local { position: absolute; width: 100px; height: 140px; bottom: 20px; right: 20px; z-index: 10; border: 2px solid rgba(255,255,255,0.2); }
-            .controls-bar { position: absolute; top: 20px; left: 20px; margin:0; flex-direction: column; gap: 10px; }
-            .btn-circle { width: 45px; height: 45px; font-size: 18px; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+            .app-shell { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+            .sidebar { order: 2; height: auto; max-height: 50vh; border-right: none; border-top: 1px solid var(--border); }
+            .stage { order: 1; padding: 0; }
+            .video-container { grid-template-columns: 1fr; gap: 0; }
+            .vid-card { border-radius: 0; border: none; }
+            .vid-card.local { position: absolute; width: 100px; height: 140px; bottom: 90px; right: 20px; z-index: 5; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 30px black; }
+            .controls { bottom: 30px; }
         }
     </style>
 </head>
 <body>
 
-<!-- هشدار امنیتی -->
-<div id="securityAlert">
-    <div class="alert-box">
-        <h2 style="margin-bottom:10px">⚠️ خطای امنیتی مرورگر</h2>
-        <p style="margin-bottom:15px; font-size:14px; line-height:1.6">
-            مرورگر اجازه دسترسی به دوربین را در این حالت نمی‌دهد.
-            <br><br>
-            <strong>راه حل:</strong><br>
-            ۱. فایل را با <b>https</b> (مثل GitHub Pages یا Netlify) باز کنید.<br>
-            ۲. یا روی <b>localhost</b> اجرا کنید.<br>
-            ۳. فایل را مستقیم (file://) یا با IP معمولی باز نکنید.
-        </p>
-        <button class="btn-block" style="background:white; color:#ef4444" onclick="location.reload()">تلاش مجدد</button>
-    </div>
-</div>
-
-<div class="main-layout">
-    <div class="video-stage">
-        <div class="video-grid">
-            <div class="video-card local">
+<div class="app-shell">
+    <div class="stage">
+        <div class="video-container">
+            <div class="vid-card local">
                 <video id="localVideo" autoplay playsinline muted></video>
-                <div class="label">شما</div>
+                <div class="badge">شما</div>
             </div>
-            <div class="video-card">
+            <div class="vid-card">
                 <video id="remoteVideo" autoplay playsinline></video>
-                <div class="label">مخاطب</div>
+                <div class="badge">مخاطب</div>
             </div>
         </div>
-        <div class="controls-bar">
-            <button class="btn-circle" id="micBtn">🎤</button>
-            <button class="btn-circle danger" id="hangupBtn">✖</button>
-            <button class="btn-circle" id="camBtn">📷</button>
+        <div class="controls">
+            <button class="icon-btn" id="micBtn">🎤</button>
+            <button class="icon-btn red" onclick="location.href=location.pathname">✖</button>
+            <button class="icon-btn" id="camBtn">📷</button>
         </div>
     </div>
 
     <div class="sidebar">
-        <div class="header">
-            <h1>o2 Connect</h1>
-            <p>تماس امن P2P</p>
-        </div>
+        <div class="logo">o2 <span class="highlight">Call</span></div>
 
-        <!-- بخش شروع کننده -->
-        <div id="hostSection">
-            <div class="step-card active" id="step1">
-                <div class="step-title">۱. ساخت لینک دعوت</div>
-                <button class="btn-block" id="createLinkBtn">🔗 ساخت لینک</button>
+        <!-- HOST: START -->
+        <div id="hostPanel">
+            <div class="card active" id="step1">
+                <h3>۱. شروع تماس</h3>
+                <p>برای برقراری تماس، ابتدا لینک دعوت را بسازید.</p>
+                <button class="btn" id="createBtn">🔗 ساخت لینک دعوت</button>
+                <div class="progress-bar" id="prog1"><div class="progress-fill" style="width:0%"></div></div>
             </div>
 
-            <div class="step-card" id="step2">
-                <div class="step-title">۲. اتصال نهایی</div>
-                <button class="btn-block" id="copyOfferBtn" style="background:#475569">📋 کپی لینک برای دوست</button>
-                <hr style="border-color:var(--border); margin:15px 0">
-                <p style="font-size:12px; color:var(--muted); margin-bottom:5px">کد تاییدی که دوستتان داد را اینجا بزنید:</p>
-                <textarea class="input-box" id="hostAnswerInput" placeholder="کد تایید را Paste کنید..."></textarea>
-                <button class="btn-block" id="connectHostBtn" style="background:#10b981">اتصال ✅</button>
+            <div class="card" id="step2" style="opacity:0.5; pointer-events:none">
+                <h3>۲. ارسال و اتصال</h3>
+                <p>لینک را برای دوستتان بفرستید. سپس کدی که او می‌دهد را اینجا وارد کنید.</p>
+                <button class="btn secondary" id="copyOfferBtn">📋 کپی لینک دعوت</button>
+                <div style="height:15px"></div>
+                <textarea id="hostInput" placeholder="کد تایید دوستتان را اینجا Paste کنید..."></textarea>
+                <div style="height:8px"></div>
+                <button class="btn" id="connectBtn">اتصال نهایی ⚡</button>
             </div>
         </div>
 
-        <!-- بخش گیرنده -->
-        <div id="guestSection" style="display:none">
-            <div class="step-card active" style="border-color:var(--accent)">
-                <div class="step-title" style="color:var(--accent)">دریافت تماس</div>
-                <p style="font-size:13px; color:var(--muted); margin-bottom:10px">لینک تایید شما آماده است. آن را کپی کرده و برای فرستنده بفرستید.</p>
-                <textarea class="input-box" id="guestAnswerOutput" readonly onclick="this.select()"></textarea>
-                <button class="btn-block" id="copyAnswerBtn" style="background:var(--accent)">📋 کپی تاییدیه</button>
+        <!-- GUEST: RECEIVE -->
+        <div id="guestPanel" style="display:none">
+            <div class="card active" style="border-color:var(--accent)">
+                <h3 style="color:var(--accent)">دریافت تماس</h3>
+                <p id="guestStatus">در حال پردازش اطلاعات تماس... لطفاً چند لحظه صبر کنید.</p>
+                
+                <div class="progress-bar" id="progGuest" style="display:block"><div class="progress-fill" id="progGuestFill" style="width:10%"></div></div>
+
+                <div id="guestResult" style="display:none; margin-top:15px">
+                    <p style="color:#fff">کد تایید آماده شد! 👇</p>
+                    <textarea id="guestOutput" readonly onclick="this.select()"></textarea>
+                    <div style="height:8px"></div>
+                    <button class="btn" id="copyAnswerBtn" style="background:var(--accent)">📋 کپی کد تایید</button>
+                    <p style="margin-top:10px; font-size:12px; color:#10b981">کپی کنید و برای فرستنده بفرستید.</p>
+                </div>
             </div>
         </div>
+
     </div>
 </div>
 
 <script>
-    const config = { iceServers: [ { urls: "stun:stun.l.google.com:19302" } ] };
-    let pc, localStream;
-
-    // بررسی امنیت پروتکل
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-        document.getElementById('securityAlert').style.display = 'flex';
-    }
-
-    function encodeData(data) { return encodeURIComponent(btoa(JSON.stringify(data))); }
-    function decodeData(str) { return JSON.parse(atob(decodeURIComponent(str))); }
-
-    const els = {
-        localVid: document.getElementById('localVideo'),
-        remoteVid: document.getElementById('remoteVideo'),
-        createLinkBtn: document.getElementById('createLinkBtn'),
-        step1: document.getElementById('step1'),
-        step2: document.getElementById('step2'),
-        copyOfferBtn: document.getElementById('copyOfferBtn'),
-        hostAnswerInput: document.getElementById('hostAnswerInput'),
-        connectHostBtn: document.getElementById('connectHostBtn'),
-        hostSection: document.getElementById('hostSection'),
-        guestSection: document.getElementById('guestSection'),
-        guestAnswerOutput: document.getElementById('guestAnswerOutput'),
-        copyAnswerBtn: document.getElementById('copyAnswerBtn')
+    // CONFIG
+    const config = {
+        iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" } // Backup STUN
+        ]
     };
 
-    async function startCamera() {
+    // DOM ELEMENTS
+    const el = {
+        local: document.getElementById('localVideo'),
+        remote: document.getElementById('remoteVideo'),
+        hostPanel: document.getElementById('hostPanel'),
+        guestPanel: document.getElementById('guestPanel'),
+        step1: document.getElementById('step1'),
+        step2: document.getElementById('step2'),
+        createBtn: document.getElementById('createBtn'),
+        copyOfferBtn: document.getElementById('copyOfferBtn'),
+        hostInput: document.getElementById('hostInput'),
+        connectBtn: document.getElementById('connectBtn'),
+        guestResult: document.getElementById('guestResult'),
+        guestOutput: document.getElementById('guestOutput'),
+        copyAnswerBtn: document.getElementById('copyAnswerBtn'),
+        prog1: document.getElementById('prog1'),
+        progGuest: document.getElementById('progGuest'),
+        progGuestFill: document.getElementById('progGuestFill')
+    };
+
+    let pc, localStream;
+
+    // UTILS
+    const encode = (json) => btoa(JSON.stringify(json));
+    const decode = (str) => JSON.parse(atob(str));
+
+    // 1. CAMERA
+    async function startMedia() {
         try {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            els.localVid.srcObject = localStream;
+            localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
+            el.local.srcObject = localStream;
             return true;
-        } catch (err) {
-            console.error(err);
-            alert("دسترسی به دوربین امکان‌پذیر نیست. \n۱. چک کنید پروتکل HTTPS باشد.\n۲. دسترسی را در تنظیمات سایت مجاز کنید.");
+        } catch (e) {
+            alert("خطا: دسترسی به دوربین داده نشد (مطمئن شوید HTTPS است).");
             return false;
         }
     }
 
+    // 2. PEER CONNECTION & ICE HANDLER (THE FIX)
     function createPC() {
-        const p = new RTCPeerConnection(config);
-        localStream.getTracks().forEach(t => p.addTrack(t, localStream));
-        p.ontrack = e => els.remoteVid.srcObject = e.streams[0];
-        return p;
+        const peer = new RTCPeerConnection(config);
+        localStream.getTracks().forEach(t => peer.addTrack(t, localStream));
+        peer.ontrack = e => el.remote.srcObject = e.streams[0];
+        return peer;
     }
 
-    // Host Logic
-    els.createLinkBtn.onclick = async () => {
-        if (!await startCamera()) return;
-        els.createLinkBtn.textContent = "درحال ساخت...";
-        els.createLinkBtn.disabled = true;
+    // "Safety Timer" ICE Gatherer
+    function gatherICE(peer) {
+        return new Promise(resolve => {
+            let done = false;
+            
+            // Normal completion
+            peer.onicecandidate = e => {
+                if (e.candidate === null && !done) {
+                    done = true;
+                    resolve(peer.localDescription);
+                }
+            };
+
+            // Force resolve after 2 seconds (Fixes "stuck" issue)
+            setTimeout(() => {
+                if (!done) {
+                    console.warn("ICE Gathering Timed Out - Forcing Result");
+                    done = true;
+                    resolve(peer.localDescription);
+                }
+            }, 2000);
+        });
+    }
+
+    // --- HOST LOGIC ---
+    el.createBtn.onclick = async () => {
+        if (!await startMedia()) return;
+        
+        el.createBtn.disabled = true;
+        el.prog1.style.display = 'block';
+        el.prog1.children[0].style.width = '60%';
 
         pc = createPC();
-        pc.createDataChannel("o2");
+        pc.createDataChannel("chat"); // Required to initiate ICE
+        
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
-        pc.onicecandidate = e => {
-            if (e.candidate === null) {
-                window.inviteLink = location.origin + location.pathname + '?call=' + encodeData(pc.localDescription);
-                els.step1.classList.remove('active');
-                els.step2.classList.add('active');
-            }
-        };
-    };
+        // Wait for ICE or Timeout
+        await gatherICE(pc);
 
-    els.copyOfferBtn.onclick = () => {
-        navigator.clipboard.writeText(window.inviteLink);
-        alert("لینک کپی شد! برای دوستت بفرست.");
-    };
-
-    els.connectHostBtn.onclick = async () => {
-        try {
-            const desc = decodeData(els.hostAnswerInput.value);
-            await pc.setRemoteDescription(desc);
-            els.connectHostBtn.textContent = "متصل شد 🎉";
-        } catch(e) { alert("کد نامعتبر است"); }
-    };
-
-    // Guest Logic
-    const params = new URLSearchParams(location.search);
-    if (params.get('call')) {
-        els.hostSection.style.display = 'none';
-        els.guestSection.style.display = 'block';
+        el.prog1.children[0].style.width = '100%';
+        const link = location.origin + location.pathname + '?c=' + encode(pc.localDescription);
         
-        (async () => {
-            if (!await startCamera()) return;
-            pc = createPC();
-            await pc.setRemoteDescription(decodeData(params.get('call')));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
+        window.offerLink = link;
+        
+        // UI Switch
+        setTimeout(() => {
+            el.step1.style.opacity = '0.5';
+            el.step1.style.pointerEvents = 'none';
+            el.step2.style.opacity = '1';
+            el.step2.style.pointerEvents = 'all';
+            el.step2.classList.add('active');
+        }, 500);
+    };
+
+    el.copyOfferBtn.onclick = () => {
+        navigator.clipboard.writeText(window.offerLink);
+        el.copyOfferBtn.textContent = "کپی شد! ✅";
+    };
+
+    el.connectBtn.onclick = async () => {
+        try {
+            const txt = el.hostInput.value.trim();
+            if(!txt) return alert("کد خالی است!");
             
-            pc.onicecandidate = e => {
-                if (e.candidate === null) {
-                    els.guestAnswerOutput.value = encodeData(pc.localDescription);
-                }
-            };
+            await pc.setRemoteDescription(decode(txt));
+            el.connectBtn.textContent = "متصل شد 🎉";
+            el.connectBtn.style.background = "#10b981";
+        } catch(e) { alert("کد اشتباه است"); }
+    };
+
+    // --- GUEST LOGIC ---
+    const urlParams = new URLSearchParams(location.search);
+    const offerData = urlParams.get('c');
+
+    if (offerData) {
+        // Switch to Guest Mode
+        el.hostPanel.style.display = 'none';
+        el.guestPanel.style.display = 'block';
+
+        (async () => {
+            // Animate Progress
+            let w = 10;
+            const timer = setInterval(() => { w+=5; if(w>90) w=90; el.progGuestFill.style.width = w+'%'; }, 100);
+
+            if (!await startMedia()) return;
+
+            try {
+                pc = createPC();
+                await pc.setRemoteDescription(decode(offerData));
+                
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                
+                // Wait for ICE or Timeout (The Fix)
+                await gatherICE(pc);
+                
+                // Done
+                clearInterval(timer);
+                el.progGuestFill.style.width = '100%';
+                
+                const answerCode = encode(pc.localDescription);
+                el.guestOutput.value = answerCode;
+                
+                setTimeout(() => {
+                    el.progGuest.style.display = 'none';
+                    el.guestStatus.style.display = 'none';
+                    el.guestResult.style.display = 'block';
+                }, 500);
+
+            } catch(e) {
+                alert("لینک خراب است");
+            }
         })();
     }
 
-    els.copyAnswerBtn.onclick = () => {
-        els.guestAnswerOutput.select();
-        document.execCommand('copy');
-        alert("کد کپی شد! برای فرستنده بفرست.");
+    el.copyAnswerBtn.onclick = () => {
+        el.guestOutput.select();
+        document.execCommand('copy'); // Fallback
+        navigator.clipboard.writeText(el.guestOutput.value);
+        el.copyAnswerBtn.textContent = "کپی شد! ✅";
     };
 
-    // Controls
+    // CONTROLS
     document.getElementById('micBtn').onclick = function() {
-        localStream.getAudioTracks()[0].enabled = !localStream.getAudioTracks()[0].enabled;
-        this.style.opacity = localStream.getAudioTracks()[0].enabled ? 1 : 0.5;
+        if(localStream) {
+            const t = localStream.getAudioTracks()[0]; t.enabled = !t.enabled;
+            this.style.opacity = t.enabled ? 1 : 0.5;
+        }
     };
     document.getElementById('camBtn').onclick = function() {
-        localStream.getVideoTracks()[0].enabled = !localStream.getVideoTracks()[0].enabled;
-        this.style.opacity = localStream.getVideoTracks()[0].enabled ? 1 : 0.5;
+        if(localStream) {
+            const t = localStream.getVideoTracks()[0]; t.enabled = !t.enabled;
+            this.style.opacity = t.enabled ? 1 : 0.5;
+        }
     };
-    document.getElementById('hangupBtn').onclick = () => location.href = location.pathname;
 
 </script>
 </body>
