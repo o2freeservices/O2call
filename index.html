@@ -3,330 +3,421 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>o2 Call | تماس امن</title>
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;500;700&display=swap" rel="stylesheet">
+    <title>o2 Call | ارتباط نهایی</title>
     <style>
-        :root { --bg: #0f172a; --panel: #1e293b; --primary: #3b82f6; --success: #10b981; --err: #ef4444; }
-        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; font-family: 'Vazirmatn', sans-serif; background: var(--bg); color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        :root {
+            --bg: #0f172a; --panel: #1e293b; --primary: #3b82f6; --success: #10b981; --err: #f43f5e;
+            --text: #f1f5f9; --border: #334155;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* --- VIDEO STAGE --- */
-        .stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #000; }
+        /* --- UI LAYOUT --- */
+        .app-container { display: flex; height: 100%; width: 100%; position: relative; }
+        
+        /* Video Area */
+        .stage { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; }
         video { width: 100%; height: 100%; object-fit: cover; }
         #localVideo {
-            position: absolute; bottom: 20px; right: 20px; width: 100px; height: 140px;
-            background: #333; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);
-            object-fit: cover; transform: scaleX(-1); z-index: 10;
+            position: absolute; bottom: 20px; right: 20px; width: 110px; height: 150px;
+            background: #111; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2);
+            object-fit: cover; transform: scaleX(-1); z-index: 20; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
-        #remoteVideo { position: absolute; inset: 0; }
-        .status {
-            position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 5px 12px;
-            border-radius: 20px; font-size: 12px; backdrop-filter: blur(5px); display: flex; align-items: center; gap: 6px; z-index: 5;
+        .overlay-status {
+            position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7);
+            padding: 8px 16px; border-radius: 30px; font-size: 13px; backdrop-filter: blur(8px);
+            z-index: 10; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.1);
         }
-        .dot { width: 8px; height: 8px; background: var(--err); border-radius: 50%; }
-        .dot.connected { background: var(--success); box-shadow: 0 0 10px var(--success); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--err); box-shadow: 0 0 5px var(--err); transition: 0.3s; }
+        .dot.active { background: var(--success); box-shadow: 0 0 10px var(--success); }
 
-        /* --- CONTROLS --- */
-        .controls-bar {
-            position: absolute; bottom: 30px; display: flex; gap: 15px; z-index: 20;
+        /* Controls */
+        .controls {
+            position: absolute; bottom: 30px; display: flex; gap: 16px; z-index: 30;
+            left: 50%; transform: translateX(-50%);
         }
-        .btn-circle {
-            width: 50px; height: 50px; border-radius: 50%; border: none; background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px); color: white; font-size: 20px; cursor: pointer;
+        .icon-btn {
+            width: 54px; height: 54px; border-radius: 50%; border: none; font-size: 22px;
+            background: rgba(30, 41, 59, 0.85); color: white; cursor: pointer; backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center; transition: 0.2s; border: 1px solid rgba(255,255,255,0.1);
         }
-        .btn-circle.red { background: var(--err); }
+        .icon-btn:active { transform: scale(0.9); }
+        .icon-btn.hangup { background: var(--err); }
+        .icon-btn.muted { opacity: 0.6; position: relative; }
+        .icon-btn.muted::after { content: '/'; position: absolute; font-size: 30px; }
 
-        /* --- SIDEBAR PANEL --- */
-        .panel {
-            background: var(--panel); padding: 20px; display: flex; flex-direction: column; gap: 15px;
-            border-top: 1px solid #334155; max-height: 50vh; overflow-y: auto; z-index: 30;
+        /* Sidebar Panel */
+        .sidebar {
+            width: 360px; background: var(--panel); border-left: 1px solid var(--border);
+            display: flex; flex-direction: column; z-index: 40; transition: transform 0.3s;
+        }
+        .panel-header { padding: 20px; border-bottom: 1px solid var(--border); font-weight: bold; font-size: 18px; }
+        .panel-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+
+        .card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 16px; border-radius: 12px; }
+        .step-badge {
+            display: inline-block; background: var(--primary); color: white; padding: 2px 8px;
+            border-radius: 4px; font-size: 11px; margin-bottom: 8px; font-weight: bold;
         }
         
-        .box {
-            background: rgba(0,0,0,0.2); border: 1px solid #334155; padding: 15px; border-radius: 12px;
-            display: none; /* Hidden by default */
-        }
-        .box.active { display: block; animation: fadeIn 0.3s; }
-
-        h2 { margin: 0 0 10px 0; font-size: 14px; color: #94a3b8; }
-        p { font-size: 12px; color: #cbd5e1; margin-bottom: 12px; line-height: 1.6; }
-
         .btn {
-            width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--primary);
-            color: white; font-family: inherit; font-weight: bold; cursor: pointer; font-size: 13px;
+            width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px;
+            font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s;
         }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn.sec { background: transparent; border: 1px solid #475569; }
-
-        textarea {
-            width: 100%; height: 70px; background: #0f172a; border: 1px solid #334155; color: #fff;
-            border-radius: 8px; padding: 10px; font-size: 11px; font-family: monospace; resize: none;
-        }
+        .btn:disabled { background: #475569; cursor: wait; opacity: 0.7; }
+        .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
         
-        /* Loading Overlay */
-        .loader {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
-            display: none; align-items: center; justify-content: center; flex-direction: column; gap: 15px;
+        textarea {
+            width: 100%; height: 80px; background: #0b1120; border: 1px solid var(--border); color: #cbd5e1;
+            padding: 10px; border-radius: 8px; resize: none; font-family: monospace; font-size: 11px; margin-top: 5px;
         }
-        .spinner { width: 30px; height: 30px; border: 3px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        textarea:focus { border-color: var(--primary); }
 
-        /* Desktop Mode */
-        @media(min-width: 768px) {
-            body { flex-direction: row; }
-            .panel { width: 350px; height: 100vh; border-top: none; border-right: 1px solid #334155; max-height: none; }
-            #localVideo { width: 120px; height: 160px; }
+        .hidden { display: none !important; }
+        
+        /* Mobile Specific */
+        @media (max-width: 800px) {
+            .app-container { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; max-height: 50vh; border-left: none; border-top: 1px solid var(--border); position: absolute; bottom: 0; border-radius: 20px 20px 0 0; }
+            #localVideo { width: 80px; height: 110px; bottom: 20px; right: 15px; top: auto; left: auto; }
+            .controls { bottom: 20px; left: 20px; transform: none; flex-direction: column; gap: 10px; }
+            .icon-btn { width: 45px; height: 45px; font-size: 18px; }
+            .stage { height: 100%; }
         }
     </style>
 </head>
 <body>
 
-<!-- LOADER -->
-<div class="loader" id="loader">
-    <div class="spinner"></div>
-    <div id="loaderText" style="font-size:14px">در حال پردازش...</div>
-</div>
-
-<!-- MAIN APP -->
-<div class="stage">
-    <video id="remoteVideo" autoplay playsinline></video>
-    <video id="localVideo" autoplay playsinline muted></video>
-    
-    <div class="status"><div class="dot" id="statusDot"></div><span id="statusTxt">آفلاین</span></div>
-    
-    <div class="controls-bar">
-        <button class="btn-circle" onclick="toggleMute(this)">🎤</button>
-        <button class="btn-circle red" onclick="location.href=location.pathname">✖</button>
-        <button class="btn-circle" onclick="toggleCam(this)">📷</button>
-    </div>
-</div>
-
-<div class="panel">
-    <div style="font-size:18px; font-weight:800; margin-bottom:5px;">o2 <span style="color:var(--primary)">Call</span></div>
-
-    <!-- BOX 1: HOST START -->
-    <div class="box active" id="hostBox1">
-        <h2>شروع تماس</h2>
-        <p>اگر شما شروع‌کننده هستید، روی دکمه زیر بزنید.</p>
-        <button class="btn" onclick="startHost()">🔗 ساخت لینک دعوت</button>
-        <div style="text-align:center; margin-top:10px; font-size:11px; opacity:0.5">یا اگر لینکی دریافت کردید، صبر کنید...</div>
-    </div>
-
-    <!-- BOX 2: HOST SHARE -->
-    <div class="box" id="hostBox2">
-        <h2>ارسال لینک</h2>
-        <p>لینک ساخته شد! آن را برای دوستتان بفرستید.</p>
-        <button class="btn sec" id="copyLinkBtn" onclick="copyLink()">📋 کپی لینک</button>
+<div class="app-container">
+    <!-- VIDEO STAGE -->
+    <div class="stage">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <video id="localVideo" autoplay playsinline muted></video>
         
-        <div style="margin:15px 0; border-top:1px dashed #334155"></div>
+        <div class="overlay-status">
+            <div class="dot" id="statusDot"></div>
+            <span id="statusText">انتظار...</span>
+        </div>
+
+        <div class="controls">
+            <button class="icon-btn" id="micBtn" onclick="toggleMute()">🎤</button>
+            <button class="icon-btn hangup" onclick="location.reload()">✖</button>
+            <button class="icon-btn" id="camBtn" onclick="toggleCam()">📷</button>
+        </div>
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div class="sidebar" id="sidebar">
+        <div class="panel-header">ارتباط امن (o2)</div>
         
-        <h2>تایید نهایی</h2>
-        <p>کدی که دوستتان بعد از باز کردن لینک می‌دهد را اینجا وارد کنید:</p>
-        <textarea id="hostInput" placeholder="کد تایید دوستتان را اینجا Paste کنید..."></textarea>
-        <div style="height:10px"></div>
-        <button class="btn" style="background:var(--success)" onclick="connectHost()">اتصال ⚡</button>
-    </div>
+        <div class="panel-content">
+            <!-- Loading -->
+            <div id="loading" class="hidden" style="text-align: center; color: var(--primary);">
+                <div style="margin-bottom: 10px;">⏳</div>
+                <div id="loadingText">در حال پردازش...</div>
+            </div>
 
-    <!-- BOX 3: GUEST -->
-    <div class="box" id="guestBox">
-        <h2 style="color:var(--success)">پاسخ به تماس</h2>
-        <p>اطلاعات تماس دریافت شد. لطفا صبر کنید...</p>
-        <textarea id="guestOutput" readonly onclick="this.select()"></textarea>
-        <div style="height:10px"></div>
-        <button class="btn" onclick="copyAnswer()">📋 کپی کد تایید (ارسال برای میزبان)</button>
-    </div>
+            <!-- MODE 1: START CALL (HOST) -->
+            <div id="host-start" class="card">
+                <span class="step-badge">میزبان</span>
+                <h3>شروع تماس جدید</h3>
+                <p style="font-size:12px; color:#94a3b8; margin:5px 0;">برای برقراری تماس، ابتدا لینک دعوت را بسازید.</p>
+                <button class="btn" onclick="Host_CreateOffer()">ساخت لینک دعوت 🔗</button>
+            </div>
 
-    <!-- MANUAL MODE (FALLBACK) -->
-    <div class="box" id="manualBox">
-        <h2 style="color:var(--err)">خطا در دریافت لینک</h2>
-        <p>لینک خودکار کار نکرد. لطفا از دوستتان بخواهید «کد دعوت» را جداگانه بفرستد و اینجا وارد کنید:</p>
-        <textarea id="manualInput" placeholder="کد دعوت طولانی را اینجا Paste کنید..."></textarea>
-        <button class="btn" onclick="manualGuestStart()">بررسی کد دستی</button>
+            <!-- MODE 2: SHARE LINK (HOST) -->
+            <div id="host-share" class="card hidden">
+                <span class="step-badge">مرحله ۲</span>
+                <h3>ارسال لینک</h3>
+                <p style="font-size:12px; color:#94a3b8;">این لینک را برای مخاطب بفرستید:</p>
+                <button class="btn secondary" id="btnCopyLink" onclick="UI_CopyLink()">📋 کپی لینک</button>
+                
+                <div style="margin:15px 0; border-bottom:1px dashed var(--border)"></div>
+                
+                <span class="step-badge">مرحله ۳</span>
+                <h3>تایید اتصال</h3>
+                <p style="font-size:12px; color:#94a3b8;">کدی که مخاطب به شما داد را اینجا وارد کنید:</p>
+                <textarea id="hostInputAnswer" placeholder="کد تایید را اینجا Paste کنید..."></textarea>
+                <button class="btn" onclick="Host_FinalizeConnect()" style="background:var(--success)">اتصال نهایی ⚡</button>
+            </div>
+
+            <!-- MODE 3: JOIN CALL (GUEST) -->
+            <div id="guest-join" class="card hidden">
+                <span class="step-badge">مهمان</span>
+                <h3>دریافت تماس</h3>
+                <p style="font-size:12px; color:#94a3b8;">در حال پردازش درخواست تماس...</p>
+                <button class="btn" id="guestStartBtn" onclick="Guest_ProcessLink()">📞 پاسخ به تماس</button>
+            </div>
+
+            <!-- MODE 4: GUEST ANSWER -->
+            <div id="guest-result" class="card hidden">
+                <span class="step-badge" style="background:var(--success)">پاسخ آماده شد</span>
+                <p style="font-size:12px; color:#94a3b8; margin-top:5px;">این کد را کپی کنید و برای میزبان بفرستید:</p>
+                <textarea id="guestOutput" readonly onclick="this.select()"></textarea>
+                <button class="btn" onclick="UI_CopyGuestCode()">📋 کپی کد تایید</button>
+            </div>
+            
+            <!-- DEBUG / ERROR BOX -->
+            <div id="errorBox" class="card hidden" style="border-color:var(--err); background:rgba(239, 68, 68, 0.1);">
+                <div style="color:var(--err); font-size:12px; font-weight:bold" id="errorText"></div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    const CONFIG = { iceServers: [{ urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }] };
-    let pc, localStream;
-    
-    // Elements
-    const el = (id) => document.getElementById(id);
-    const showLoader = (txt) => { el('loader').style.display = 'flex'; el('loaderText').textContent = txt; };
-    const hideLoader = () => el('loader').style.display = 'none';
-    const showBox = (id) => { document.querySelectorAll('.box').forEach(b=>b.classList.remove('active')); el(id).classList.add('active'); };
+    // --- CORE CONFIGURATION ---
+    const CONFIG = {
+        iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" },
+            { urls: "stun:stun2.l.google.com:19302" }
+        ],
+        iceCandidatePoolSize: 10
+    };
 
-    // --- UTILS ---
-    const compress = (json) => encodeURIComponent(btoa(JSON.stringify(json)));
-    const decompress = (str) => {
-        try { return JSON.parse(atob(decodeURIComponent(str))); }
-        catch(e) { 
-            try { return JSON.parse(atob(str)); } // Retry without decodeURI
-            catch(err) { return null; }
+    // --- GLOBAL VARIABLES ---
+    let pc = null;
+    let localStream = null;
+    let pendingOffer = null; // To store offer from URL
+
+    // --- UTILS: COMPRESSION & ENCODING ---
+    // We use a simplified custom encoding to reduce URL size safely
+    const Codec = {
+        encode: (data) => {
+            try {
+                // Remove spaces and unnecessary chars to shrink size
+                const json = JSON.stringify(data);
+                return encodeURIComponent(btoa(json));
+            } catch(e) { console.error(e); return ""; }
+        },
+        decode: (str) => {
+            try {
+                // Heal broken strings (common in copy-paste)
+                let clean = str.replace(/\s/g, ''); 
+                clean = decodeURIComponent(clean);
+                return JSON.parse(atob(clean));
+            } catch(e) {
+                console.error("Decoding Failed:", e);
+                return null;
+            }
         }
     };
 
-    // --- 1. MEDIA SETUP ---
-    async function initMedia() {
+    // --- UI MANAGER ---
+    const UI = {
+        show: (id) => document.getElementById(id).classList.remove('hidden'),
+        hide: (id) => document.getElementById(id).classList.add('hidden'),
+        hideAll: () => {
+            ['host-start', 'host-share', 'guest-join', 'guest-result', 'loading'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        },
+        log: (msg) => {
+            const eb = document.getElementById('errorText');
+            document.getElementById('errorBox').classList.remove('hidden');
+            eb.textContent = msg;
+            setTimeout(() => document.getElementById('errorBox').classList.add('hidden'), 5000);
+        },
+        setStatus: (text, active) => {
+            document.getElementById('statusText').textContent = text;
+            if(active) document.getElementById('statusDot').classList.add('active');
+            else document.getElementById('statusDot').classList.remove('active');
+        },
+        loading: (show, text="...") => {
+            if(show) { UI.hideAll(); UI.show('loading'); document.getElementById('loadingText').textContent = text; }
+            else { UI.hide('loading'); }
+        }
+    };
+
+    // --- 1. MEDIA HANDLING ---
+    async function startCamera() {
+        if (localStream) return true; // Already started
         try {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
-            el('localVideo').srcObject = localStream;
+            localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
+            document.getElementById('localVideo').srcObject = localStream;
             return true;
-        } catch (e) {
-            alert("دسترسی دوربین/میکروفون داده نشد. لطفا چک کنید سایت HTTPS باشد.");
+        } catch (err) {
+            UI.log("❌ خطا: دسترسی به دوربین/میکروفون داده نشد.");
             return false;
         }
     }
 
-    // --- 2. WEBRTC CORE ---
-    function createPeer() {
-        const p = new RTCPeerConnection(CONFIG);
-        if(localStream) localStream.getTracks().forEach(t => p.addTrack(t, localStream));
-        
-        p.ontrack = e => {
-            el('remoteVideo').srcObject = e.streams[0];
-            el('statusDot').classList.add('connected');
-            el('statusTxt').textContent = "متصل شد";
-            document.querySelector('.panel').style.display = 'none'; // Hide panel on connect (mobile friendly)
+    // --- 2. WEBRTC ENGINE ---
+    function createPeerConnection() {
+        if(pc) pc.close();
+        pc = new RTCPeerConnection(CONFIG);
+
+        // Add Tracks
+        if(localStream) {
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        }
+
+        // Handle Incoming Stream
+        pc.ontrack = (event) => {
+            console.log("Stream received!");
+            document.getElementById('remoteVideo').srcObject = event.streams[0];
+            UI.setStatus("متصل شد", true);
+            // Hide Sidebar on Mobile when connected
+            if(window.innerWidth < 800) document.getElementById('sidebar').style.display = 'none';
         };
-        return p;
+
+        // Handle Connection State
+        pc.onconnectionstatechange = () => {
+            const state = pc.connectionState;
+            document.getElementById('statusText').textContent = state;
+            if (state === 'connected') UI.setStatus("متصل شد", true);
+            if (state === 'disconnected' || state === 'failed') UI.setStatus("قطع شد", false);
+        };
+
+        return pc;
     }
 
-    // Wait for ALL ICE candidates (The secret to serverless working)
-    async function waitForICE(p) {
+    // ★★★ THE SECRET SAUCE: FORCE WAIT FOR ICE ★★★
+    function waitForICE(peerConn) {
         return new Promise(resolve => {
-            if (p.iceGatheringState === 'complete') resolve();
-            else {
-                // Double check mechanism
-                const check = () => { if (p.iceGatheringState === 'complete') { p.removeEventListener('icegatheringstatechange', check); resolve(); } };
-                p.addEventListener('icegatheringstatechange', check);
-                // Force resolve after 3s (Safety)
-                setTimeout(resolve, 3000); 
+            if (peerConn.iceGatheringState === 'complete') {
+                resolve();
+            } else {
+                let checkInterval;
+                // Timeout after 3 seconds to prevent hanging
+                const timeout = setTimeout(() => {
+                    clearInterval(checkInterval);
+                    console.warn("ICE Gathering Timeout - Proceeding anyway");
+                    resolve();
+                }, 3000);
+
+                peerConn.onicecandidate = (e) => {
+                    if (e.candidate === null) {
+                        clearTimeout(timeout);
+                        resolve();
+                    }
+                };
             }
         });
     }
 
     // --- 3. HOST LOGIC ---
-    async function startHost() {
-        if(!await initMedia()) return;
-        showLoader("در حال ساخت کد...");
+    async function Host_CreateOffer() {
+        if (!await startCamera()) return;
 
-        pc = createPeer();
-        pc.createDataChannel("o2"); // Required to initiate ICE
+        UI.loading(true, "در حال شناسایی شبکه (این مرحله حیاتی است)...");
+        
+        pc = createPeerConnection();
+        pc.createDataChannel("chat"); // Dummy channel to wake up ICE
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        
-        await waitForICE(pc); // Wait for IP gathering
 
-        const code = compress(pc.localDescription);
-        const link = location.origin + location.pathname + '?d=' + code;
+        // WAIT for candidates
+        await waitForICE(pc);
 
+        // Generate Code
+        const code = Codec.encode(pc.localDescription);
+        const link = window.location.origin + window.location.pathname + '?d=' + code;
         window.generatedLink = link;
-        hideLoader();
-        showBox('hostBox2');
+
+        // Verify length warning
+        if(link.length > 2000) console.warn("Link is very long, might be truncated by some browsers.");
+
+        UI.loading(false);
+        UI.show('host-share');
     }
 
-    function copyLink() {
-        if(!window.generatedLink) return;
-        navigator.clipboard.writeText(window.generatedLink);
-        el('copyLinkBtn').textContent = "کپی شد ✅";
-    }
+    async function Host_FinalizeConnect() {
+        const rawCode = document.getElementById('hostInputAnswer').value.trim();
+        if(!rawCode) return UI.log("کد تایید وارد نشده است!");
 
-    async function connectHost() {
-        const txt = el('hostInput').value.trim();
-        if(!txt) return alert("کد خالی است");
-        
+        const answerDesc = Codec.decode(rawCode);
+        if(!answerDesc) return UI.log("فرمت کد اشتباه است.");
+
         try {
-            const answer = decompress(txt) || JSON.parse(atob(txt)); // Handle both formats
-            await pc.setRemoteDescription(answer);
-            el('hostInput').value = ""; // Clear for security
-        } catch(e) { alert("کد اشتباه است"); console.error(e); }
+            await pc.setRemoteDescription(answerDesc);
+            UI.log("اتصال برقرار شد! 🎉");
+        } catch (e) {
+            console.error(e);
+            UI.log("خطا در اتصال نهایی.");
+        }
+    }
+
+    function UI_CopyLink() {
+        navigator.clipboard.writeText(window.generatedLink).then(() => {
+            const btn = document.getElementById('btnCopyLink');
+            const original = btn.textContent;
+            btn.textContent = "کپی شد ✅";
+            setTimeout(() => btn.textContent = original, 2000);
+        });
     }
 
     // --- 4. GUEST LOGIC ---
-    async function initGuest(offerCode) {
-        // Important: User interaction required before playing audio
-        showLoader("در حال راه‌اندازی دوربین...");
-        if(!await initMedia()) { hideLoader(); return; }
-
-        showLoader("در حال پردازش کد...");
-        try {
-            const offerDesc = decompress(offerCode);
-            if(!offerDesc) throw new Error("Invalid Code");
-
-            pc = createPeer();
-            await pc.setRemoteDescription(offerDesc);
-            
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            
-            await waitForICE(pc); // Wait for Guest IP
-
-            // Prepare Answer Code
-            const answerCode = btoa(JSON.stringify(pc.localDescription)); // Simple b64 for text box
-            el('guestOutput').value = answerCode;
-            
-            hideLoader();
-            showBox('guestBox');
-
-        } catch(e) {
-            hideLoader();
-            alert("لینک ناقص است یا کپی نشده. لطفا کد دستی را امتحان کنید.");
-            showBox('manualBox');
-        }
-    }
-
-    function copyAnswer() {
-        const t = el('guestOutput');
-        t.select();
-        t.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(t.value);
-        alert("کپی شد! این کد را برای فرستنده بفرستید.");
-    }
-
-    // Manual Fallback
-    function manualGuestStart() {
-        const code = el('manualInput').value.trim();
-        if(code) initGuest(code); // Treat manual code same as URL code
-    }
-
-    // --- INIT ---
-    // Check URL for incoming call
+    // Initialize Guest Mode if URL has data
     window.onload = () => {
-        const params = new URLSearchParams(location.search);
+        const params = new URLSearchParams(window.location.search);
         const data = params.get('d');
         if (data) {
-            // We found a call link!
-            el('hostBox1').style.display = 'none'; // Hide host start
-            // Show a "Join" button to trigger permission prompt properly
-            const btn = document.createElement('button');
-            btn.className = 'btn';
-            btn.style.marginTop = '20px';
-            btn.innerHTML = "📞 دریافت تماس (کلیک کنید)";
-            btn.onclick = () => { btn.remove(); initGuest(data); };
-            
-            document.querySelector('.panel').innerHTML = ""; // Clear panel
-            document.querySelector('.panel').appendChild(btn);
-            
-            // Auto hide loader just in case
-            hideLoader();
+            pendingOffer = data;
+            UI.hideAll();
+            UI.show('guest-join'); // Show "Answer Call" button
         }
     };
 
-    // --- CONTROLS ---
-    function toggleMute(btn) {
-        if(localStream) {
-            const t = localStream.getAudioTracks()[0]; t.enabled = !t.enabled;
-            btn.style.opacity = t.enabled ? 1 : 0.5;
+    async function Guest_ProcessLink() {
+        if (!await startCamera()) return;
+        
+        UI.loading(true, "در حال پردازش لینک...");
+
+        const offerDesc = Codec.decode(pendingOffer);
+        if(!offerDesc) {
+            UI.loading(false);
+            UI.log("لینک خراب یا ناقص است.");
+            return;
+        }
+
+        try {
+            pc = createPeerConnection();
+            await pc.setRemoteDescription(offerDesc);
+
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            // WAIT for guest ICE
+            await waitForICE(pc);
+
+            const answerCode = Codec.encode(pc.localDescription);
+            document.getElementById('guestOutput').value = answerCode;
+
+            UI.loading(false);
+            UI.show('guest-result');
+
+        } catch (e) {
+            console.error(e);
+            UI.loading(false);
+            UI.log("خطا در پردازش. لینک ممکن است منقضی شده باشد.");
         }
     }
-    function toggleCam(btn) {
+
+    function UI_CopyGuestCode() {
+        const txt = document.getElementById('guestOutput');
+        txt.select();
+        txt.setSelectionRange(0, 99999); // Mobile
+        navigator.clipboard.writeText(txt.value);
+        UI.log("کپی شد! برای میزبان بفرستید.");
+    }
+
+    // --- 5. MEDIA CONTROLS ---
+    function toggleMute() {
         if(localStream) {
-            const t = localStream.getVideoTracks()[0]; t.enabled = !t.enabled;
-            btn.style.opacity = t.enabled ? 1 : 0.5;
+            const t = localStream.getAudioTracks()[0];
+            t.enabled = !t.enabled;
+            document.getElementById('micBtn').classList.toggle('muted', !t.enabled);
         }
     }
+    function toggleCam() {
+        if(localStream) {
+            const t = localStream.getVideoTracks()[0];
+            t.enabled = !t.enabled;
+            document.getElementById('camBtn').classList.toggle('muted', !t.enabled);
+        }
+    }
+
 </script>
 </body>
 </html>
