@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>o2 Call • تماس فوری</title>
+    <title>o2 Call • تماس تصویری امن</title>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0b1121; --surface: #151e32; --primary: #3b82f6; --accent: #ec4899;
-            --text: #f8fafc; --border: #334155; --radius: 18px;
+            --bg: #0f172a; --surface: #1e293b; --primary: #3b82f6; --accent: #10b981;
+            --text: #f1f5f9; --border: #334155; --radius: 16px;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; outline: none; }
         body {
             font-family: 'Vazirmatn', sans-serif; background: var(--bg); color: var(--text);
             height: 100vh; display: flex; flex-direction: column; overflow: hidden;
@@ -19,348 +19,348 @@
         /* Layout */
         .app-shell { display: grid; grid-template-columns: 1fr 380px; height: 100%; }
         
-        /* Video Area */
+        /* Video Stage */
         .stage {
-            position: relative; display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; background: #000; padding: 10px;
+            position: relative; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-        .video-container {
-            position: relative; width: 100%; height: 100%; max-width: 1200px;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center;
+        .video-wrapper {
+            width: 100%; height: 100%; position: relative;
         }
-        .vid-card {
-            background: #111; border-radius: var(--radius); overflow: hidden; position: relative;
-            height: 100%; border: 1px solid #333;
+        video {
+            width: 100%; height: 100%; object-fit: cover; background: #000;
         }
-        video { width: 100%; height: 100%; object-fit: cover; display: block; }
-        #localVideo { transform: scaleX(-1); }
-        .badge {
-            position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.6);
-            padding: 4px 10px; border-radius: 8px; font-size: 12px; backdrop-filter: blur(4px);
+        #localVideo {
+            position: absolute; bottom: 20px; right: 20px; width: 120px; height: 160px;
+            background: #222; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2);
+            z-index: 10; object-fit: cover; transform: scaleX(-1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5); transition: 0.3s;
         }
+        #remoteVideo { position: absolute; top:0; left:0; width:100%; height:100%; }
 
-        /* Sidebar Controls */
-        .sidebar {
-            background: var(--surface); border-right: 1px solid var(--border); padding: 20px;
-            display: flex; flex-direction: column; gap: 15px; overflow-y: auto; z-index: 10;
+        .status-badge {
+            position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px); padding: 6px 12px; border-radius: 20px;
+            font-size: 12px; display: flex; align-items: center; gap: 6px; z-index: 5;
         }
-        .logo { font-size: 24px; font-weight: 900; color: white; margin-bottom: 10px; }
-        .highlight { color: var(--primary); }
+        .dot { width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: pulse 2s infinite; }
+        .dot.green { background: #10b981; animation: none; }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--surface); border-right: 1px solid var(--border);
+            padding: 24px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; z-index: 20;
+        }
+        .header h1 { font-size: 22px; font-weight: 800; letter-spacing: -1px; }
+        .header span { color: var(--primary); }
 
         .card {
-            background: rgba(255,255,255,0.03); border: 1px solid var(--border); 
-            border-radius: 16px; padding: 16px; transition: 0.3s;
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px; position: relative;
         }
-        .card.active { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+        .card-title { font-size: 14px; color: #94a3b8; margin-bottom: 12px; font-weight: 600; }
         
-        h3 { font-size: 15px; margin-bottom: 8px; color: #e2e8f0; }
-        p { font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 12px; }
-
         .btn {
             width: 100%; padding: 14px; border-radius: 12px; border: none; cursor: pointer;
-            font-family: inherit; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
-            background: var(--primary); color: white; transition: 0.2s;
+            font-family: inherit; font-weight: 600; font-size: 14px; color: white;
+            background: var(--primary); transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
         }
-        .btn:hover { background: #2563eb; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
-        
-        textarea {
-            width: 100%; background: #0b1121; border: 1px solid var(--border); color: #cbd5e1;
-            padding: 10px; border-radius: 10px; font-family: monospace; font-size: 11px; resize: none; height: 70px; outline: none;
-        }
-        textarea:focus { border-color: var(--primary); }
+        .btn:active { transform: scale(0.98); }
+        .btn.secondary { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--border); }
+        .btn:disabled { opacity: 0.5; cursor: wait; }
 
-        /* Loading Animation */
-        .progress-bar {
-            height: 4px; width: 100%; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 10px; display: none;
+        textarea {
+            width: 100%; background: #0f172a; border: 1px solid var(--border); color: #cbd5e1;
+            padding: 12px; border-radius: 12px; font-family: monospace; font-size: 11px;
+            resize: none; height: 80px; margin-bottom: 10px; transition: 0.3s;
         }
-        .progress-fill {
-            height: 100%; background: var(--primary); width: 0%; transition: width 0.3s;
-        }
+        textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
 
         /* Controls */
         .controls {
-            position: absolute; bottom: 20px; display: flex; gap: 12px;
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 15px; z-index: 20;
         }
-        .icon-btn {
-            width: 50px; height: 50px; border-radius: 50%; background: rgba(30, 41, 59, 0.8); 
-            color: white; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; font-size: 20px;
-            display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);
+        .control-btn {
+            width: 56px; height: 56px; border-radius: 50%; border: none;
+            background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(10px);
+            color: white; font-size: 22px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center; transition: 0.2s;
         }
-        .icon-btn.red { background: #ef4444; border-color: #ef4444; }
-        .icon-btn:active { transform: scale(0.95); }
+        .control-btn.hangup { background: #ef4444; }
+        .control-btn:active { transform: scale(0.9); }
+        
+        .hidden { display: none !important; }
 
-        /* Responsive */
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* Mobile */
         @media (max-width: 900px) {
             .app-shell { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-            .sidebar { order: 2; height: auto; max-height: 50vh; border-right: none; border-top: 1px solid var(--border); }
-            .stage { order: 1; padding: 0; }
-            .video-container { grid-template-columns: 1fr; gap: 0; }
-            .vid-card { border-radius: 0; border: none; }
-            .vid-card.local { position: absolute; width: 100px; height: 140px; bottom: 90px; right: 20px; z-index: 5; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 30px black; }
-            .controls { bottom: 30px; }
+            .sidebar { border-right: none; border-top: 1px solid var(--border); max-height: 45vh; padding: 15px; }
+            #localVideo { width: 90px; height: 120px; bottom: 100px; right: 15px; }
+            .controls { bottom: 110px; }
         }
     </style>
 </head>
 <body>
 
 <div class="app-shell">
+    <!-- VIDEO STAGE -->
     <div class="stage">
-        <div class="video-container">
-            <div class="vid-card local">
-                <video id="localVideo" autoplay playsinline muted></video>
-                <div class="badge">شما</div>
-            </div>
-            <div class="vid-card">
-                <video id="remoteVideo" autoplay playsinline></video>
-                <div class="badge">مخاطب</div>
-            </div>
+        <div class="video-wrapper">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <video id="localVideo" autoplay playsinline muted></video>
+            <div class="status-badge"><div class="dot" id="statusDot"></div><span id="statusText">آفلاین</span></div>
         </div>
+        
         <div class="controls">
-            <button class="icon-btn" id="micBtn">🎤</button>
-            <button class="icon-btn red" onclick="location.href=location.pathname">✖</button>
-            <button class="icon-btn" id="camBtn">📷</button>
+            <button class="control-btn" onclick="toggleMute(this)">🎤</button>
+            <button class="control-btn hangup" onclick="location.href=location.pathname">✖</button>
+            <button class="control-btn" onclick="toggleCam(this)">📷</button>
         </div>
     </div>
 
+    <!-- SIDEBAR -->
     <div class="sidebar">
-        <div class="logo">o2 <span class="highlight">Call</span></div>
+        <div class="header"><h1>o2 <span>Call</span></h1></div>
 
-        <!-- HOST: START -->
-        <div id="hostPanel">
-            <div class="card active" id="step1">
-                <h3>۱. شروع تماس</h3>
-                <p>برای برقراری تماس، ابتدا لینک دعوت را بسازید.</p>
-                <button class="btn" id="createBtn">🔗 ساخت لینک دعوت</button>
-                <div class="progress-bar" id="prog1"><div class="progress-fill" style="width:0%"></div></div>
+        <!-- SECTION 1: HOST -->
+        <div id="hostSection">
+            <div class="card" id="step1">
+                <div class="card-title">۱. شروع به عنوان میزبان</div>
+                <p style="font-size:12px; color:#64748b; margin-bottom:10px">اگر شما تماس را شروع می‌کنید، روی دکمه زیر بزنید.</p>
+                <button class="btn" id="createBtn" onclick="createOffer()">🚀 ساخت لینک دعوت</button>
             </div>
 
-            <div class="card" id="step2" style="opacity:0.5; pointer-events:none">
-                <h3>۲. ارسال و اتصال</h3>
-                <p>لینک را برای دوستتان بفرستید. سپس کدی که او می‌دهد را اینجا وارد کنید.</p>
-                <button class="btn secondary" id="copyOfferBtn">📋 کپی لینک دعوت</button>
-                <div style="height:15px"></div>
-                <textarea id="hostInput" placeholder="کد تایید دوستتان را اینجا Paste کنید..."></textarea>
-                <div style="height:8px"></div>
-                <button class="btn" id="connectBtn">اتصال نهایی ⚡</button>
+            <div class="card hidden" id="step2">
+                <div class="card-title">۲. ارسال لینک</div>
+                <button class="btn secondary" id="copyBtn" onclick="copyLink()">📋 کپی لینک</button>
+                <div style="margin: 15px 0; border-top: 1px dashed var(--border)"></div>
+                <div class="card-title">۳. وارد کردن کد تایید</div>
+                <textarea id="remoteAnswer" placeholder="کد تاییدی که دوستتان فرستاد را اینجا پیست کنید..."></textarea>
+                <button class="btn" onclick="verifyAnswer()" style="background:var(--accent)">اتصال نهایی ⚡</button>
             </div>
         </div>
 
-        <!-- GUEST: RECEIVE -->
-        <div id="guestPanel" style="display:none">
-            <div class="card active" style="border-color:var(--accent)">
-                <h3 style="color:var(--accent)">دریافت تماس</h3>
-                <p id="guestStatus">در حال پردازش اطلاعات تماس... لطفاً چند لحظه صبر کنید.</p>
-                
-                <div class="progress-bar" id="progGuest" style="display:block"><div class="progress-fill" id="progGuestFill" style="width:10%"></div></div>
-
-                <div id="guestResult" style="display:none; margin-top:15px">
-                    <p style="color:#fff">کد تایید آماده شد! 👇</p>
-                    <textarea id="guestOutput" readonly onclick="this.select()"></textarea>
-                    <div style="height:8px"></div>
-                    <button class="btn" id="copyAnswerBtn" style="background:var(--accent)">📋 کپی کد تایید</button>
-                    <p style="margin-top:10px; font-size:12px; color:#10b981">کپی کنید و برای فرستنده بفرستید.</p>
-                </div>
+        <!-- SECTION 2: GUEST -->
+        <div id="guestSection" class="hidden">
+            <div class="card">
+                <div class="card-title" style="color:var(--accent)">در حال دریافت تماس...</div>
+                <p style="font-size:12px; margin-bottom:10px">سیستم در حال پردازش لینک است. لطفا کد زیر را کپی کرده و برای فرستنده ارسال کنید.</p>
+                <textarea id="guestOutput" readonly onclick="this.select()"></textarea>
+                <button class="btn" onclick="copyGuestCode()">📋 کپی کد تایید</button>
             </div>
         </div>
-
+        
+        <div id="logArea" style="font-size:11px; color:#ef4444; text-align:center; min-height:20px;"></div>
     </div>
 </div>
 
 <script>
-    // CONFIG
+    // --- CONFIGURATION ---
     const config = {
         iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" } // Backup STUN
+            { urls: "stun:stun1.l.google.com:19302" }
         ]
     };
 
-    // DOM ELEMENTS
-    const el = {
-        local: document.getElementById('localVideo'),
-        remote: document.getElementById('remoteVideo'),
-        hostPanel: document.getElementById('hostPanel'),
-        guestPanel: document.getElementById('guestPanel'),
-        step1: document.getElementById('step1'),
-        step2: document.getElementById('step2'),
-        createBtn: document.getElementById('createBtn'),
-        copyOfferBtn: document.getElementById('copyOfferBtn'),
-        hostInput: document.getElementById('hostInput'),
-        connectBtn: document.getElementById('connectBtn'),
-        guestResult: document.getElementById('guestResult'),
-        guestOutput: document.getElementById('guestOutput'),
-        copyAnswerBtn: document.getElementById('copyAnswerBtn'),
-        prog1: document.getElementById('prog1'),
-        progGuest: document.getElementById('progGuest'),
-        progGuestFill: document.getElementById('progGuestFill')
+    // --- VARIABLES ---
+    let pc;
+    let localStream;
+    const log = (msg) => document.getElementById('logArea').textContent = msg;
+
+    // --- UTILS (ENHANCED ENCODING) ---
+    // Safe Encode: Object -> JSON -> Base64 -> URL Encoded
+    const encodeData = (data) => {
+        try {
+            return encodeURIComponent(btoa(JSON.stringify(data)));
+        } catch(e) { console.error(e); return ""; }
     };
 
-    let pc, localStream;
+    // Safe Decode: URL Decoded -> Base64 -> JSON -> Object
+    const decodeData = (str) => {
+        try {
+            // Fix: Replace standard spaces with +, though decodeURIComponent handles %20
+            const cleanStr = decodeURIComponent(str); 
+            return JSON.parse(atob(cleanStr));
+        } catch (e) {
+            console.error("Decode Error:", e);
+            throw new Error("فرمت کد اشتباه است.");
+        }
+    };
 
-    // UTILS
-    const encode = (json) => btoa(JSON.stringify(json));
-    const decode = (str) => JSON.parse(atob(str));
-
-    // 1. CAMERA
+    // --- CORE MEDIA ---
     async function startMedia() {
         try {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
-            el.local.srcObject = localStream;
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('localVideo').srcObject = localStream;
             return true;
-        } catch (e) {
-            alert("خطا: دسترسی به دوربین داده نشد (مطمئن شوید HTTPS است).");
+        } catch (err) {
+            alert("دسترسی به دوربین داده نشد! لطفا چک کنید سایت HTTPS باشد یا دسترسی را باز کنید.");
             return false;
         }
     }
 
-    // 2. PEER CONNECTION & ICE HANDLER (THE FIX)
-    function createPC() {
-        const peer = new RTCPeerConnection(config);
-        localStream.getTracks().forEach(t => peer.addTrack(t, localStream));
-        peer.ontrack = e => el.remote.srcObject = e.streams[0];
-        return peer;
+    // --- WEBRTC SETUP ---
+    function setupPC() {
+        pc = new RTCPeerConnection(config);
+        
+        // Add Tracks
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        
+        // Remote Stream Handler
+        pc.ontrack = (event) => {
+            document.getElementById('remoteVideo').srcObject = event.streams[0];
+            document.getElementById('statusDot').classList.add('green');
+            document.getElementById('statusText').textContent = "متصل شد";
+        };
+
+        // Connection State
+        pc.onconnectionstatechange = () => {
+            if(pc.connectionState === 'connected') {
+                log("");
+                document.querySelector('.sidebar').style.opacity = '0.5'; // Focus on video
+            }
+        };
+
+        return pc;
     }
 
-    // "Safety Timer" ICE Gatherer
-    function gatherICE(peer) {
+    async function gatherCandidates(pc) {
         return new Promise(resolve => {
-            let done = false;
-            
-            // Normal completion
-            peer.onicecandidate = e => {
-                if (e.candidate === null && !done) {
-                    done = true;
-                    resolve(peer.localDescription);
-                }
-            };
-
-            // Force resolve after 2 seconds (Fixes "stuck" issue)
-            setTimeout(() => {
-                if (!done) {
-                    console.warn("ICE Gathering Timed Out - Forcing Result");
-                    done = true;
-                    resolve(peer.localDescription);
-                }
-            }, 2000);
+            if (pc.iceGatheringState === 'complete') {
+                resolve();
+            } else {
+                let checkTimer;
+                const checkDone = () => {
+                    if (pc.iceGatheringState === 'complete') {
+                        clearTimeout(checkTimer);
+                        resolve();
+                    }
+                };
+                pc.onicecandidate = (e) => { if (!e.candidate) checkDone(); };
+                // Timeout safety (2.5s)
+                checkTimer = setTimeout(resolve, 2500); 
+            }
         });
     }
 
-    // --- HOST LOGIC ---
-    el.createBtn.onclick = async () => {
-        if (!await startMedia()) return;
-        
-        el.createBtn.disabled = true;
-        el.prog1.style.display = 'block';
-        el.prog1.children[0].style.width = '60%';
+    // --- HOST FUNCTIONS ---
+    async function createOffer() {
+        const btn = document.getElementById('createBtn');
+        btn.disabled = true;
+        btn.innerHTML = "⏳ در حال ساخت...";
 
-        pc = createPC();
-        pc.createDataChannel("chat"); // Required to initiate ICE
-        
+        if (!await startMedia()) { btn.disabled = false; return; }
+
+        pc = setupPC();
+        pc.createDataChannel("chat"); // Trigger ICE generation
+
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-
-        // Wait for ICE or Timeout
-        await gatherICE(pc);
-
-        el.prog1.children[0].style.width = '100%';
-        const link = location.origin + location.pathname + '?c=' + encode(pc.localDescription);
         
-        window.offerLink = link;
+        await gatherCandidates(pc);
+
+        // Generate Link
+        const payload = pc.localDescription;
+        const encoded = encodeData(payload);
+        const link = window.location.origin + window.location.pathname + '?d=' + encoded;
         
+        window.generatedLink = link;
+
         // UI Switch
-        setTimeout(() => {
-            el.step1.style.opacity = '0.5';
-            el.step1.style.pointerEvents = 'none';
-            el.step2.style.opacity = '1';
-            el.step2.style.pointerEvents = 'all';
-            el.step2.classList.add('active');
-        }, 500);
-    };
-
-    el.copyOfferBtn.onclick = () => {
-        navigator.clipboard.writeText(window.offerLink);
-        el.copyOfferBtn.textContent = "کپی شد! ✅";
-    };
-
-    el.connectBtn.onclick = async () => {
-        try {
-            const txt = el.hostInput.value.trim();
-            if(!txt) return alert("کد خالی است!");
-            
-            await pc.setRemoteDescription(decode(txt));
-            el.connectBtn.textContent = "متصل شد 🎉";
-            el.connectBtn.style.background = "#10b981";
-        } catch(e) { alert("کد اشتباه است"); }
-    };
-
-    // --- GUEST LOGIC ---
-    const urlParams = new URLSearchParams(location.search);
-    const offerData = urlParams.get('c');
-
-    if (offerData) {
-        // Switch to Guest Mode
-        el.hostPanel.style.display = 'none';
-        el.guestPanel.style.display = 'block';
-
-        (async () => {
-            // Animate Progress
-            let w = 10;
-            const timer = setInterval(() => { w+=5; if(w>90) w=90; el.progGuestFill.style.width = w+'%'; }, 100);
-
-            if (!await startMedia()) return;
-
-            try {
-                pc = createPC();
-                await pc.setRemoteDescription(decode(offerData));
-                
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                
-                // Wait for ICE or Timeout (The Fix)
-                await gatherICE(pc);
-                
-                // Done
-                clearInterval(timer);
-                el.progGuestFill.style.width = '100%';
-                
-                const answerCode = encode(pc.localDescription);
-                el.guestOutput.value = answerCode;
-                
-                setTimeout(() => {
-                    el.progGuest.style.display = 'none';
-                    el.guestStatus.style.display = 'none';
-                    el.guestResult.style.display = 'block';
-                }, 500);
-
-            } catch(e) {
-                alert("لینک خراب است");
-            }
-        })();
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('step2').classList.remove('hidden');
     }
 
-    el.copyAnswerBtn.onclick = () => {
-        el.guestOutput.select();
-        document.execCommand('copy'); // Fallback
-        navigator.clipboard.writeText(el.guestOutput.value);
-        el.copyAnswerBtn.textContent = "کپی شد! ✅";
-    };
+    function copyLink() {
+        if(!window.generatedLink) return;
+        navigator.clipboard.writeText(window.generatedLink).then(() => {
+            document.getElementById('copyBtn').innerHTML = "کپی شد ✅";
+            setTimeout(() => document.getElementById('copyBtn').innerHTML = "📋 کپی لینک", 2000);
+        });
+    }
 
-    // CONTROLS
-    document.getElementById('micBtn').onclick = function() {
-        if(localStream) {
-            const t = localStream.getAudioTracks()[0]; t.enabled = !t.enabled;
-            this.style.opacity = t.enabled ? 1 : 0.5;
-        }
-    };
-    document.getElementById('camBtn').onclick = function() {
-        if(localStream) {
-            const t = localStream.getVideoTracks()[0]; t.enabled = !t.enabled;
-            this.style.opacity = t.enabled ? 1 : 0.5;
-        }
-    };
+    async function verifyAnswer() {
+        const raw = document.getElementById('remoteAnswer').value;
+        // Fix: Remove ALL whitespace (spaces, tabs, newlines) to prevent copy-paste errors
+        const clean = raw.replace(/\s+/g, '');
+        
+        if (!clean) { log("کد وارد نشده است!"); return; }
 
+        try {
+            const answerDesc = decodeData(clean); // Uses our improved decoder
+            await pc.setRemoteDescription(answerDesc);
+            log("");
+        } catch (e) {
+            log("❌ خطا: کد اشتباه است. لطفا دوباره کپی کنید.");
+            console.error(e);
+        }
+    }
+
+    // --- GUEST FUNCTIONS ---
+    async function handleGuest(encodedOffer) {
+        document.getElementById('hostSection').classList.add('hidden');
+        document.getElementById('guestSection').classList.remove('hidden');
+
+        if (!await startMedia()) return;
+
+        try {
+            pc = setupPC();
+            
+            const offerDesc = decodeData(encodedOffer);
+            await pc.setRemoteDescription(offerDesc);
+
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            await gatherCandidates(pc);
+
+            // Output Answer Code
+            // We use simple base64 for the text output, URL encoding not needed for manual copy
+            const answerPayload = btoa(JSON.stringify(pc.localDescription));
+            document.getElementById('guestOutput').value = answerPayload;
+
+        } catch (e) {
+            log("لینک خراب یا منقضی است.");
+        }
+    }
+
+    function copyGuestCode() {
+        const txt = document.getElementById('guestOutput');
+        txt.select();
+        txt.setSelectionRange(0, 99999); // Mobile fix
+        navigator.clipboard.writeText(txt.value).then(() => {
+            log("کپی شد! برای میزبان بفرستید ✅");
+        });
+    }
+
+    // --- INIT ---
+    // Check if we are guest
+    const urlParams = new URLSearchParams(window.location.search);
+    const incomingData = urlParams.get('d');
+
+    if (incomingData) {
+        handleGuest(incomingData);
+    }
+
+    // --- MEDIA CONTROLS ---
+    function toggleMute(btn) {
+        if(localStream) {
+            const audioTrack = localStream.getAudioTracks()[0];
+            audioTrack.enabled = !audioTrack.enabled;
+            btn.style.opacity = audioTrack.enabled ? 1 : 0.5;
+            btn.innerHTML = audioTrack.enabled ? "🎤" : "🔇";
+        }
+    }
+    function toggleCam(btn) {
+        if(localStream) {
+            const videoTrack = localStream.getVideoTracks()[0];
+            videoTrack.enabled = !videoTrack.enabled;
+            btn.style.opacity = videoTrack.enabled ? 1 : 0.5;
+        }
+    }
 </script>
 </body>
 </html>
